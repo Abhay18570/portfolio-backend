@@ -1,9 +1,8 @@
 package com.abhay.portfolio_backend.controller;
 
 import com.abhay.portfolio_backend.dto.ContactRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
@@ -12,8 +11,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/contact")
 public class ContactController {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username}")
+    private String ownerEmail;
+
+    public ContactController(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     @PostMapping
     public ResponseEntity<String> sendContactMessage(@RequestBody ContactRequest request) {
@@ -21,8 +26,9 @@ public class ContactController {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
 
-            message.setFrom("abhaysonone0@gmail.com");
-            message.setTo("abhaysonone0@gmail.com");
+            message.setFrom(ownerEmail);
+            message.setTo(ownerEmail);
+            message.setReplyTo(request.getEmail());
             message.setSubject("New Portfolio Message from " + request.getName());
 
             message.setText(
@@ -35,9 +41,10 @@ public class ContactController {
 
             return ResponseEntity.ok("Message sent successfully");
 
-        } catch (MailException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Email sending failed: " + e.getMessage());
+            return ResponseEntity.status(500)
+                    .body("Email sending failed: " + e.getMessage());
         }
     }
 }
